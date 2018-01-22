@@ -187,17 +187,6 @@ var IssueAdd = function (_React$Component2) {
   return IssueAdd;
 }(React.Component);
 
-var issues = [{
-  id: 1, status: 'Open', owner: 'Ravan',
-  created: new Date('2016-08-15'), effort: 5, completionDate: undefined,
-  title: 'Error in console when clicking Add'
-}, {
-  id: 2, status: 'Assigned', owner: 'Eddie',
-  created: new Date('2016-08-16'), effort: 14,
-  completionDate: new Date('2016-08-30'),
-  title: 'Missing bottom border on panel'
-}];
-
 var IssueList = function (_React$Component3) {
   _inherits(IssueList, _React$Component3);
 
@@ -221,17 +210,44 @@ var IssueList = function (_React$Component3) {
     value: function loadData() {
       var _this4 = this;
 
-      setTimeout(function () {
-        _this4.setState({ issues: issues });
-      }, 500);
+      fetch('/api/issues').then(function (response) {
+        return response.json();
+      }).then(function (data) {
+        console.log("Total count of records:", data._metadata.total_count);
+        data.records.forEach(function (issue) {
+          issue.created = new Date(issue.created);
+          if (issue.completionDate) issue.completionDate = new Date(issue.completionDate);
+        });
+        _this4.setState({ issues: data.records });
+      }).catch(function (err) {
+        console.log(err);
+      });
     }
   }, {
     key: 'createIssue',
     value: function createIssue(newIssue) {
-      var newIssues = this.state.issues.slice();
-      newIssue.id = this.state.issues.length + 1;
-      newIssues.push(newIssue);
-      this.setState({ issues: newIssues });
+      var _this5 = this;
+
+      fetch('/api/issues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newIssue)
+      }).then(function (response) {
+        if (response.ok) {
+          response.json().then(function (updatedIssue) {
+            updatedIssue.created = new Date(updatedIssue.created);
+            if (updatedIssue.completionDate) updatedIssue.completionDate = new Date(updatedIssue.completionDate);
+            var newIssues = _this5.state.issues.concat(updatedIssue);
+            _this5.setState({ issues: newIssues });
+          });
+        } else {
+          response.json().then(function (error) {
+            alert("Failed to add issue: " + error.message);
+          });
+        }
+      }).catch(function (err) {
+        alert("Error in sending data to server: " + err.message);
+      });
     }
   }, {
     key: 'render',
