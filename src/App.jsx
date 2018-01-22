@@ -9,51 +9,70 @@ class IssueFilter extends React.Component {
 }
 
 
-class IssueRow extends React.Component {
-  render() {
-    const issue = this.props.issue;
-    return (
-      <tr>
-        <td>{issue.id}</td>
-        <td>{issue.status}</td>
-        <td>{issue.owner}</td>
-        <td>{issue.created.toDateString()}</td>
-        <td>{issue.effort}</td>
-        <td>{issue.completionDate ?
-          issue.completionDate.toDateString() : ''}</td>
-        <td>{issue.title}</td>
-      </tr>
-    )
-  }
-}
+const IssueRow = (props) => (
+  <tr>
+    <td>{props.issue.id}</td>
+    <td>{props.issue.status}</td>
+    <td>{props.issue.owner}</td>
+    <td>{props.issue.created.toDateString()}</td>
+    <td>{props.issue.effort}</td>
+    <td>{props.issue.completionDate ?
+      props.issue.completionDate.toDateString() : ''}</td>
+    <td>{props.issue.title}</td>
+  </tr>
+)
 
-class IssueTable extends React.Component {
-  render() {
-    const issueRows = this.props.issues.map(issue => <IssueRow
-      key={issue.id} issue={issue} />)
-    return (
-      <table className="bordered-table">
-        <thead>
-          <tr>
-            <th>Id</th>
-            <th>Status</th>
-            <th>Owner</th>
-            <th>Created</th>
-            <th>Effort</th>
-            <th>Completion Date</th>
-            <th>Title</th>
-          </tr>
-        </thead>
-        <tbody>{issueRows}</tbody>
-      </table>
-    )
-  }
+function IssueTable(props) {
+  // Could just put this expression between the <tbody> tags, but it's more
+  // readable when left like this. (This could look like the above 'const IssueRow'
+  // that uses the arrow function, fwiw.)
+  const issueRows = props.issues.map(issue => <IssueRow
+    key={issue.id} issue={issue} />);
+  return (
+    <table className="bordered-table">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Status</th>
+          <th>Owner</th>
+          <th>Created</th>
+          <th>Effort</th>
+          <th>Completion Date</th>
+          <th>Title</th>
+        </tr>
+      </thead>
+      <tbody>{issueRows}</tbody>
+    </table>
+  );
 }
 
 class IssueAdd extends React.Component {
+  constructor() {
+    super();
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  handleSubmit(e) {
+    e.preventDefault();
+    var form = document.forms.issueAdd;
+    this.props.createIssue({
+      owner: form.owner.value,
+      title: form.title.value,
+      status: 'New',
+      created: new Date(),
+    });
+    // Clears the form for the next input:
+    form.owner.value = ""; form.title.value = "";
+  }
   render() {
     return (
-      <div>This is a placeholder for an Issue Add entry form.</div>
+      <div>
+        <form name="issueAdd" onSubmit={this.handleSubmit}>
+          <input type="text" name="owner" placeholder="Owner" />
+          <input type="text" name="title" placeholder="Title" />
+          <button>Add</button>
+        </form>
+      </div>
     )
   }
 }
@@ -75,27 +94,25 @@ const issues = [
 class IssueList extends React.Component {
   constructor() {
     super();
-    this.state = {
-      issues: issues
-    };
-    setTimeout(this.createTestIssue.bind(this), 2000);
-    // Could use an arrow function instead, which would avoid the .bind(this):
-    // setTimeout(() => {this.createTestIssue()}, 2000);
+    this.state = { issues: [] };
+    this.createIssue = this.createIssue.bind(this);
   }
 
+  componentDidMount() {
+    this.loadData();
+  }
+
+  loadData() {
+    setTimeout(() => {
+      this.setState({ issues: issues });
+    }, 500);
+  }
 
   createIssue(newIssue) {
     const newIssues = this.state.issues.slice();
     newIssue.id = this.state.issues.length + 1;
     newIssues.push(newIssue);
     this.setState({ issues: newIssues });
-  }
-
-  createTestIssue() {
-    this.createIssue({
-      status: 'New', owner: 'Pieta', created: new Date(),
-      title: 'Completion date should be optional',
-    });
   }
 
   render() {
@@ -106,7 +123,7 @@ class IssueList extends React.Component {
         <hr />
         <IssueTable issues={this.state.issues} />
         <hr />
-        <IssueAdd />
+        <IssueAdd createIssue={this.createIssue} />
       </div>
     );
   }
